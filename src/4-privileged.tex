@@ -1,0 +1,106 @@
+\chapter{特权态与系统调用}
+操作系统对特权态的管理是操作系统的重要组成部分，影响了用户态程序的编写。
+这些系统调用也是操作系统向用户态提供抽象的重要部分，例如Linux中将设备的读写都转换为文件读写，因此对应的系统调用都和文件的操作读写相关。Windows的系统调用接口则更为复杂一些，因为其内核的构成并不是单纯的宏内核，对于最小执行单元也有不同的定义。
+在这个专题的实践中，我们的目标是体验操作系统内核在通过系统调用进行系统管理上的重要作用。
+
+
+\section{用户定义的系统调用}
+目标：新增内核的键值存储模块（Key-Value Store），要求提供read接口和write接口。内核的键值数据需要存储在进程相关的结构体中，键值存储的对象是进程为对象。
+
+提示：修改用户态系统调用的二进制文件和内核的系统调用接收器。
+
+\subsection*{指标与评测要求}
+\begin{itemize}
+    \item 可评测指标：系统调用延迟（用户态到内核态切换时间+处理时间）、多线程下键值读写正确性（100并发线程下无竞争条件）
+    \item 吞吐要求：单核每秒可处理不少于10,000次空操作读写请求
+\end{itemize}
+
+\subsection*{实现规范}
+\begin{enumerate}
+    \item 接口定义：
+    \begin{lstlisting}[language=C]
+    // 用户态接口
+    int write_kv(int k, int v); // 返回写入字节数，错误返回-1
+    int read_kv(int k);         // 成功返回对应值，错误返回-1
+    \end{lstlisting}
+    
+    \item 内核侧实现：
+    \begin{itemize}
+        \item 在进程控制块(task\_struct)中添加kv\_store字段：\texttt{struct hlist\_head kv\_store[1024];}
+        \item 采用开放寻址哈希表实现，哈希函数：\texttt{k \% 1024}
+        \item 同步机制：每个哈希桶使用独立自旋锁(\texttt{spinlock\_t})
+    \end{itemize}
+    
+\end{enumerate}
+
+\subsection*{测试方案}
+\begin{itemize}
+    \item 创建100线程交替随机读写，最终验证数据一致性
+    \item 使用sysbench工具发起100万次随机请求
+    \item 开启KASAN和LOCKDEP内核调试选项下测试并发正确性
+\end{itemize}
+
+\section{vDSO}
+在上一个体验中，你已经增加了系统调用感受到了系统的服务。然而每次系统调用还是需要通过异常或者中断进行特权态切换，会带来较大切换开销。
+经过观察，可以发现一部分系统调用并不会泄露内核的状态也不会修改内核。
+对于这些系统调用可以在用户态以只读共享页面的方式直接进行而无需进入操作系统内核。
+Linux中提供了vDSO支持这一想法。
+
+目标：在vDSO中新增一个读取当前进程对应的\texttt{task\_struct}中的所有信息。
+
+\subsection*{指标与评测要求}
+\begin{itemize}
+    \item 性能：读取数据延迟需小于100ns（依据机器有所不同）
+    \item 正确性：返回的task\_struct指针地址与内核地址空间数据匹配
+\end{itemize}
+
+\subsection*{实现规范}
+\begin{enumerate}
+    \item 接口设计：
+    \begin{lstlisting}[language=C]
+    // vDSO暴露接口
+    struct task_info {
+        pid_t pid;
+        void *task_struct_ptr;
+        // 其他关键字段...
+    };
+    int get_task_struct_info(struct task_info *info);
+    \end{lstlisting}
+    
+    \item 内核侧实现：
+    \begin{itemize}
+        \item 在vDSO镜像(arch/x86/entry/vdso/vdso.lds.S)添加新符号\_\_vdso\_get\_task\_info
+        \item 实现函数填充current宏指向的task\_struct信息
+        \item 用户态访问约束：所有指针字段标记为\texttt{\_\_user}属性
+    \end{itemize}
+
+\end{enumerate}
+
+\subsection*{测试方案}
+\begin{itemize}
+    \item 对比从/proc/self/stat获取的pid与vDSO返回值
+    \item 测试多次调用fork()的接口检查稳定性
+\end{itemize}
+
+\section{无需中断的系统调用}
+通过vDSO，我们可以实现无需特权态切换对只读数据的访问。
+那么对于需要请求内核服务的系统调用，是否也可以避开特权态切换呢？
+答案是肯定的，FlexSC~\cite{soares2010flexsc}给出了对应的解决方案。
+这一解决方案可以简化为用户态程序和操作系统内核存在共享页面，用户态程序将系统调用需要的参数写进这个共享页面，然后操作系统内核从这个共享页面中读取数据并且将结果写回该页面实现基于共享内存的系统调用。
+
+目标：在Linux内核中实现无特权态切换的系统调用服务。
+
+提示：用户态线程比较容易实现请求后等待结果的自旋，需要确保内核处理的线程始终在线。
+
+\subsection*{指标与评测要求}
+\begin{itemize}
+    \item 吞吐和延迟要求：性能应当可以提升至少20\%。
+    \item 兼容性：需通过Linux Test Project (LTP)全部系统调用相关测试用例
+\end{itemize}
+
+
+\subsection*{测试方案}
+\begin{itemize}
+    \item 吞吐：使用Apache Bench进行百万次getpid()调用测试
+    \item 正确性：运行所有syscall/目录下的LTP测试用例
+\end{itemize}
