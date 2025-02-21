@@ -87,6 +87,30 @@ make menuconfig
 make -j$(nproc) && make install
 \end{lstlisting}
 
+\subsection{EDK2编译}
+EDK2的可编译源码在git submodule里，因此相对简单可靠的方式就是直接按照官网所说的那样：
+\begin{lstlisting}[language=bash]
+git clone -b stable/202408 https://github.com/tianocore/edk2.git
+cd edk2
+git submodule update --init
+\end{lstlisting}
+在编译之前，需要在系统里安装一些基础的包（例如base-devel uuid、nasm、acpica），然后就可以编译BaseTools。
+\begin{lstlisting}[language=bash]
+source edksetup.sh
+make -C BaseTools -j$(nproc)
+\end{lstlisting}
+然后编辑\texttt{Conf/target.txt}（参考\url{https://github.com/tianocore/tianocore.github.io/wiki/How-to-build-OVMF}）：
+\begin{lstlisting}
+ACTIVE_PLATFORM       = OvmfPkg/OvmfPkgIa32X64.dsc
+TARGET_ARCH           = IA32 X64
+TOOL_CHAIN_TAG        = GCC5
+\end{lstlisting}
+最后，执行：
+\begin{lstlisting}[language=bash]
+build
+\end{lstlisting}
+然后就可以在\texttt{Build/Ovmf3264/DEBUG\_GCC5/FV/}目录找到\texttt{OVMF\_CODE.fd}和\texttt{OVMF\_VARS.fd}两个编译出的OVMF文件。（这里的Ovmf3264和DEBUG\_GCC5和编译选项有关，也是在\texttt{Conf/target.txt}里面配置。）
+
 \subsection{制作initramfs}
 \subsubsection{创建启动脚本}
 \begin{lstlisting}[language=bash]
@@ -117,6 +141,11 @@ qemu-system-x86_64 \
     -initrd ./busybox-1.35.0/initramfs.cpio.gz \
     -nographic \
     -append "init=/init console=ttyS0"
+\end{lstlisting}
+如果使用EDK2的话，可以在参数里加上两行：
+\begin{lstlisting}[language=bash]
+    -drive if=pflash,format=raw,unit=0,file="${OVMF_CODE}",readonly=on \
+    -drive if=pflash,format=raw,unit=1,file="${PLAYGROUND_DIR}/OVMF_VARS.fd" \
 \end{lstlisting}
 
 \subsection{验证}
