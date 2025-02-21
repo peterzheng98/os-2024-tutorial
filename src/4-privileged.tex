@@ -46,7 +46,7 @@
 对于这些系统调用可以在用户态以只读共享页面的方式直接进行而无需进入操作系统内核。
 Linux中提供了vDSO支持这一想法。
 
-目标：在vDSO中新增一个读取当前进程对应的\texttt{task\_struct}中的所有信息。
+目标：在vDSO中新增一个读取当前进程对应的\texttt{task\_struct}中的所有信息的函数。
 
 \subsection*{指标与评测要求}
 \begin{itemize}
