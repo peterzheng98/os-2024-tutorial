@@ -62,6 +62,15 @@ make -j$(nproc)   # 开始编译
 
 \textbf{编译输出文件}: \texttt{arch/x86/boot/bzImage}
 
+在编译过程中，可能会发生编译错误的情况。这可能是 GCC 版本过高导致的。这里给出一种可行的组合： Linux-5.19.17, 使用 GCC-12 进行编译，操作如下：
+
+\begin{lstlisting}[language=bash]
+sudo apt install gcc-12 g++-12 # 安装gcc-12
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 70
+sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 70 # 切换 gcc 默认版本
+\end{lstlisting}
+经过这些操作后，应该可以正常编译 Linux 内核了。
+
 \subsection{BusyBox编译}
 这里可以采用其他发行版（例如Ubuntu发行版等）。
 \begin{lstlisting}[language=bash]
