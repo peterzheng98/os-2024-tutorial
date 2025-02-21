@@ -154,3 +154,68 @@ qemu-system-x86_64 \
     \item 查看启动参数: \texttt{cat /proc/cmdline}
     \item 测试基本命令: \texttt{ls}, \texttt{mount}
 \end{itemize}
+
+\section{Linux环境部署 EDK2 开发环境}
+
+python的版本要求>=3.11，
+
+\subsubsection{下载源码}
+\begin{lstlisting}[language=bash]
+git clone https://github.com/tianocore/edk2.git
+cd edk2
+git submodule update --init  #大概需要几分钟
+cd ..
+\end{lstlisting}
+
+\subsubsection{网上找到的可能需要安装的一堆东西}
+\begin{lstlisting}[language=bash]
+sudo apt-get install build-essential uuid-dev
+sudo apt-get install uuid-dev nasm bison flex
+sudo apt-get install libx11-dev x11proto-xext-dev libxext-dev
+\end{lstlisting}
+
+将 NASM 更新到 2.15.x 以上版本，当前的edk2项目需要依赖nasm2.15以上版本，否则编译会报错
+nasm各版本下载链接：http://www.nasm.us/pub/nasm/releasebuilds/?C=M;O=D
+
+\begin{lstlisting}[language=bash]
+cd nasm-2.16
+./autogen.sh
+./configure
+make
+make install
+nasm --version
+\end{lstlisting}
+
+\subsubsection{make一下BaseTools}
+
+然后cd到edk2/BaseTools下
+\begin{lstlisting}[language=bash]
+make
+\end{lstlisting}
+
+显示ok则成功。
+注意这里所有的文件应该是LF，不能是CRLF，不然会出问题。可以先检查一下。
+
+然后到edk2的conf目录下，创建target.txt(template在readme里面)
+然后修改：
+TARGET_ARCH           = X64
+TOOL_CHAIN_TAG        = GCC5
+
+\subsubsection{编译UEFI模拟器和UEFI工程}
+先到edk2目录下，然后执行
+\begin{lstlisting}[language=bash]
+sourse edksetup.sh
+build
+\end{lstlisting}
+
+然后到target.txt里面改一下：
+ACTIVE_PLATFORM       = OvmfPkg/OvmfPkgX64.dsc
+
+\subsubsection{运行}
+首先下载一个ubuntu的iso镜像，比如ubuntu-24.04.1-live-server-amd64.iso
+然后找到自己的OVMF.fd，一般在edk2/Build/OvmfX64/DEBUG_GCC5/FV/OVMF.fd下
+下面的bios就是跑一下自己编译出的UEFI模拟器，cdrom就是iso镜像，m 4096是内存大小，enable-kvm是开启虚拟化加速
+正常来说sudo可以不加，m可以不加，kvm的指令不需要加，但是我不加的话会报错，所以加上了
+\begin{lstlisting}[language=bash]
+sudo qemu-system-x86_64 -m 4096 -cdrom ~/ubuntu-24.04.1-live-server-amd64.iso -bios ~/OVMF.fd -enable-kvm
+\end{lstlisting}
