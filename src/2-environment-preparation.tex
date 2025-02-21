@@ -86,6 +86,7 @@ make menuconfig
 
 make -j$(nproc) && make install
 \end{lstlisting}
+如果在编译过程中出现错误（ TCA\_CBQ\_MAX undeclared ），一种解决方式是直接删除出错的 “tc.c” 文件。之后就可以正常编译了（版本 1.32.0 可以用此方法解决）。
 
 \subsection{制作initramfs}
 \subsubsection{创建启动脚本}
