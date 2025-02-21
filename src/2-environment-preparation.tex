@@ -3,30 +3,23 @@
 \section{基准代码}
 本系列的基准代码规则如下：
 \begin{enumerate}
-    \item \textbf{Linux}: 任何体系结构下高于5.10.20版本的Linux内核都是可行的选项，你可以从\url{https://www.kernel.org/}中选择合适的版本。对于\texttt{initramfs}，你可以选择任何一个发行版。如果你选择直接使用qcow或者其他完全预制好的Ubuntu镜像，你需要手动在内部更换内核以确保你的代码能够生效。
+    \item \textbf{Linux}: 任何体系结构下高于5.10.20版本，低于6.0版本的Linux内核都是可行的选项，你可以从\url{https://www.kernel.org/}中选择合适的版本。对于\texttt{initramfs}，你可以选择任何一个发行版。
     \item \textbf{QEMU}: 版本>=7。
     \item \textbf{EDK2}: 跟随\url{https://github.com/tianocore/edk2}选择合适的版本。其中Ubuntu\_GCC5并不意味着GCC版本必须是5。
 \end{enumerate}
-
-\section{在QEMU中启动Linux镜像}
-\begin{remark}
-简单起见你可以直接使用预制作好的\texttt{qcow} Ubuntu镜像作为磁盘镜像由qemu直接引导，具体教程：\url{https://documentation.ubuntu.com/public-images/en/latest/public-images-how-to/launch-qcow-with-qemu/}。如果你选用这个方案，你只需要确保QEMU正常安装即可。
-\end{remark}
-
-\begin{remark}
-    本区域中.x.x部分请填入自己对应的版本号。
-\end{remark}
-
-
-
-\subsection{QEMU安装（二选一）}
-\subsubsection{软件包安装}
+\section{QEMU安装（二选一）}
+\subsection{软件包安装}
+Linux:
 \begin{lstlisting}[language=bash]
 sudo apt-get install qemu-system-x86
-qemu-system-x86_64 --version
 \end{lstlisting}
 
-\subsubsection{源码编译安装}
+Windows:
+\begin{lstlisting}[language=bash]
+choco install qemu
+# 需手动将程序添加到PATH
+\end{lstlisting}
+\subsection{源码编译安装}
 \begin{lstlisting}[language=bash]
 # 安装依赖
 sudo apt-get install git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev ninja-build
@@ -40,17 +33,17 @@ cd qemu-7.2.0
 make -j$(nproc)
 \end{lstlisting}
 
-\subsubsection{常见依赖问题}
+\subsection{常见依赖问题}
 \begin{itemize}
     \item \textbf{ERROR: Cannot find Ninja} → 执行 \texttt{sudo apt install ninja-build}
     \item \textbf{ERROR: glib-2.56 required} → 执行 \texttt{sudo apt install libglib2.0-dev}
     \item \textbf{Dependency "pixman-1" not found} → 执行 \texttt{sudo apt install libpixman-1-dev}
 \end{itemize}
 
-\subsection{Linux内核编译}
+\section{Linux内核编译}
 \begin{lstlisting}[language=bash]
 # 安装依赖
-sudo apt-get install git fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison 
+sudo apt-get install git fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison
 mkdir ~/kernel && cd ~/kernel
 wget https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/linux-5.x.x.tar.gz
 tar -xf linux-5.x.x.tar.gz
@@ -71,7 +64,8 @@ sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 70 # 切换 
 \end{lstlisting}
 经过这些操作后，应该可以正常编译 Linux 内核了。
 
-\subsection{BusyBox编译}
+\section{BusyBox编译与initramfs制作}
+\subsection{BusyBox编译安装}
 这里可以采用其他发行版（例如Ubuntu发行版等）。
 \begin{lstlisting}[language=bash]
 mkdir ~/kvm && cd ~/kvm
@@ -87,32 +81,7 @@ make menuconfig
 make -j$(nproc) && make install
 \end{lstlisting}
 
-\subsection{EDK2编译}
-EDK2的可编译源码在git submodule里，因此相对简单可靠的方式就是直接按照官网所说的那样：
-\begin{lstlisting}[language=bash]
-git clone -b stable/202408 https://github.com/tianocore/edk2.git
-cd edk2
-git submodule update --init
-\end{lstlisting}
-在编译之前，需要在系统里安装一些基础的包（例如base-devel uuid、nasm、acpica），然后就可以编译BaseTools。
-\begin{lstlisting}[language=bash]
-source edksetup.sh
-make -C BaseTools -j$(nproc)
-\end{lstlisting}
-然后编辑\texttt{Conf/target.txt}（参考\url{https://github.com/tianocore/tianocore.github.io/wiki/How-to-build-OVMF}）：
-\begin{lstlisting}
-ACTIVE_PLATFORM       = OvmfPkg/OvmfPkgIa32X64.dsc
-TARGET_ARCH           = IA32 X64
-TOOL_CHAIN_TAG        = GCC5
-\end{lstlisting}
-最后，执行：
-\begin{lstlisting}[language=bash]
-build
-\end{lstlisting}
-然后就可以在\texttt{Build/Ovmf3264/DEBUG\_GCC5/FV/}目录找到\texttt{OVMF\_CODE.fd}和\texttt{OVMF\_VARS.fd}两个编译出的OVMF文件。（这里的Ovmf3264和DEBUG\_GCC5和编译选项有关，也是在\texttt{Conf/target.txt}里面配置。）
-
-\subsection{制作initramfs}
-\subsubsection{创建启动脚本}
+\subsection{创建启动脚本}
 \begin{lstlisting}[language=bash]
 cd busybox-1.x.x/_install/
 mkdir -p proc sys dev tmp
@@ -120,102 +89,51 @@ echo -e '#!/bin/sh\nmount -t proc none /proc\nmount -t sysfs none /sys\nmount -t
 chmod +x init
 \end{lstlisting}
 
-\subsubsection{打包文件系统}
+\subsection{打包文件系统}
 \begin{lstlisting}[language=bash]
 find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../initramfs.cpio.gz
 \end{lstlisting}
 
-\subsection{启动QEMU}
-\subsubsection{图形界面启动}
-\begin{lstlisting}[language=bash]
-qemu-system-x86_64 \
-    -kernel ./linux-5.x.x/arch/x86/boot/bzImage \
-    -initrd ./busybox-1.x.x/initramfs.cpio.gz \
-    -append "init=/init"
-\end{lstlisting}
-
-\subsubsection{字符界面启动}
-\begin{lstlisting}[language=bash]
-qemu-system-x86_64 \
-    -kernel ./linux-5.19/arch/x86/boot/bzImage \
-    -initrd ./busybox-1.35.0/initramfs.cpio.gz \
-    -nographic \
-    -append "init=/init console=ttyS0"
-\end{lstlisting}
-如果使用EDK2的话，可以在参数里加上两行：
-\begin{lstlisting}[language=bash]
-    -drive if=pflash,format=raw,unit=0,file="${OVMF_CODE}",readonly=on \
-    -drive if=pflash,format=raw,unit=1,file="${PLAYGROUND_DIR}/OVMF_VARS.fd" \
-\end{lstlisting}
-
-\subsection{验证}
-\begin{itemize}
-    \item 检查内核版本: \texttt{uname -a}
-    \item 查看启动参数: \texttt{cat /proc/cmdline}
-    \item 测试基本命令: \texttt{ls}, \texttt{mount}
-\end{itemize}
-
-\section{Linux环境部署 EDK2 开发环境}
-
-python的版本要求>=3.11，
-
-\subsubsection{下载源码}
+\section{EDK2编译与OVMF文件构建}
+EDK2的可编译源码在git submodule里，因此相对简单可靠的方式就是直接按照官网所说的那样：
 \begin{lstlisting}[language=bash]
 git clone https://github.com/tianocore/edk2.git
 cd edk2
-git submodule update --init  #大概需要几分钟
-cd ..
+git submodule update --init
 \end{lstlisting}
-
-\subsubsection{网上找到的可能需要安装的一堆东西}
+在编译之前，需要在系统里安装一些基础的包（例如base-devel uuid、nasm、acpica），然后就可以编译BaseTools并运行setup脚本。
 \begin{lstlisting}[language=bash]
-sudo apt-get install build-essential uuid-dev
-sudo apt-get install uuid-dev nasm bison flex
-sudo apt-get install libx11-dev x11proto-xext-dev libxext-dev
+make -C BaseTools -j$(nproc)
+source edksetup.sh
 \end{lstlisting}
-
-将 NASM 更新到 2.15.x 以上版本，当前的edk2项目需要依赖nasm2.15以上版本，否则编译会报错
-nasm各版本下载链接：http://www.nasm.us/pub/nasm/releasebuilds/?C=M;O=D
-
-\begin{lstlisting}[language=bash]
-cd nasm-2.16
-./autogen.sh
-./configure
-make
-make install
-nasm --version
-\end{lstlisting}
-
-\subsubsection{make一下BaseTools}
-
-然后cd到edk2/BaseTools下
-\begin{lstlisting}[language=bash]
-make
-\end{lstlisting}
-
-显示ok则成功。
-注意这里所有的文件应该是LF，不能是CRLF，不然会出问题。可以先检查一下。
-
-然后到edk2的conf目录下，创建target.txt(template在readme里面)
-然后修改：
+还需编辑配置文件\texttt{Conf/target.txt}（参考\url{https://github.com/tianocore/tianocore.github.io/wiki/How-to-build-OVMF}）：
+\begin{lstlisting}
+ACTIVE_PLATFORM       = OvmfPkg/OvmfPkgX64.dsc
 TARGET_ARCH           = X64
 TOOL_CHAIN_TAG        = GCC5
-
-\subsubsection{编译UEFI模拟器和UEFI工程}
-先到edk2目录下，然后执行
+\end{lstlisting}
+最后，执行：
 \begin{lstlisting}[language=bash]
-sourse edksetup.sh
-build
+build #需要确保运行过edksetup.sh
+\end{lstlisting}
+就可以在\texttt{Build/OvmfPkgX64/DEBUG\_GCC5/FV/}目录找到\texttt{OVMF\_CODE.fd}和\texttt{OVMF\_VARS.fd}两个编译出的OVMF文件，以及合并的\texttt{OVMF.fd}。（OvmfPkgX64\_GCC5和build选项有关，对应\texttt{Conf/target.txt}里面的配置。）
+
+\section{启动QEMU}
+\begin{lstlisting}[language=bash]
+qemu-system-x86_64 \
+    -m 8G \ #需分配足够内存，否则无法进入系统！
+    -kernel linux-5.x.x/arch/x86/boot/bzImage \ #linux内核路径
+    -initrd busybox-1.x.x/initramfs.cpio.gz \ #initramfs文件路径
+    -bios edk2/Build/OvmfX64/DEBUG_GCC5/FV/OVMF.fd \ #OVMF文件路径（暂不启用UEFI可以去掉，使用默认SeaBIOS）
+    -append "init=/init console=ttyS0" \ #传递给内核的启动参数：运行启动脚本，配置控制台输出
+    -nographic \ #使用命令行界面
+    -enable-kvm #启用kvm加速（Windows可使用-accel whpx）
 \end{lstlisting}
 
-然后到target.txt里面改一下：
-ACTIVE_PLATFORM       = OvmfPkg/OvmfPkgX64.dsc
-
-\subsubsection{运行}
-首先下载一个ubuntu的iso镜像，比如ubuntu-24.04.1-live-server-amd64.iso
-然后找到自己的OVMF.fd，一般在edk2/Build/OvmfX64/DEBUG_GCC5/FV/OVMF.fd下
-下面的bios就是跑一下自己编译出的UEFI模拟器，cdrom就是iso镜像，m 4096是内存大小，enable-kvm是开启虚拟化加速
-正常来说sudo可以不加，m可以不加，kvm的指令不需要加，但是我不加的话会报错，所以加上了
-\begin{lstlisting}[language=bash]
-sudo qemu-system-x86_64 -m 4096 -cdrom ~/ubuntu-24.04.1-live-server-amd64.iso -bios ~/OVMF.fd -enable-kvm
-\end{lstlisting}
+\section{验证}
+\begin{itemize}
+    \item 检查内核版本: \texttt{uname -a}
+    \item 查看启动参数: \texttt{cat /proc/cmdline}
+    \item 检查UEFI是否启用：\texttt{test -d /sys/firmware/efi \&\& echo efi || echo bios}
+    \item 测试基本命令: \texttt{ls}, \texttt{mount}
+\end{itemize}
