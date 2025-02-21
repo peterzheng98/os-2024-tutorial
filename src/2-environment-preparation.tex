@@ -106,16 +106,16 @@ find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../initramfs.cpio.gz
 \subsubsection{图形界面启动}
 \begin{lstlisting}[language=bash]
 qemu-system-x86_64 \
-    -kernel ./linux-5.x.x/arch/x86/boot/bzImage \
-    -initrd ./busybox-1.x.x/initramfs.cpio.gz \
+    -kernel ./kernel/linux-5.x.x/arch/x86/boot/bzImage \
+    -initrd ./kvm/busybox-1.x.x/initramfs.cpio.gz \
     -append "init=/init"
 \end{lstlisting}
 
 \subsubsection{字符界面启动}
-\begin{lstlisting}[language=bash]
+\begin{lstlisting}[language=bash, showstringspaces=false]
 qemu-system-x86_64 \
-    -kernel ./linux-5.19/arch/x86/boot/bzImage \
-    -initrd ./busybox-1.35.0/initramfs.cpio.gz \
+    -kernel ./kernel/linux-5.x.x/arch/x86/boot/bzImage \
+    -initrd ./kvm/busybox-1.x.x/initramfs.cpio.gz \
     -nographic \
     -append "init=/init console=ttyS0"
 \end{lstlisting}
