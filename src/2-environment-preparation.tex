@@ -90,7 +90,7 @@ make -j$(nproc) && make install
 
 \subsection{制作initramfs}
 \subsubsection{创建启动脚本}
-\begin{lstlisting}[language=bash]
+\begin{lstlisting}[language=bash, language=bash, showstringspaces=false]
 cd busybox-1.x.x/_install/
 mkdir -p proc sys dev tmp
 echo -e '#!/bin/sh\nmount -t proc none /proc\nmount -t sysfs none /sys\nmount -t tmpfs none /tmp\nmount -t devtmpfs none /dev\necho "Hello Linux!"\nexec /bin/sh' > init
