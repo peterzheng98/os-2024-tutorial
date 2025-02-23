@@ -22,13 +22,6 @@ jobs:
           name: PDF
           path: elegantbook-cn.pdf
 
-      - name: Create a tag based on commit SHA
-        run: |
-          if [ "${GITHUB_REF}" == "refs/heads/main" ]; then
-            git tag v1.${{ github.run_number }}
-            git push origin v1.${{ github.run_number }}
-          fi
-
       - name: Create GitHub Release and Upload PDF
         uses: softprops/action-gh-release@v1
         if: github.ref == 'refs/heads/main'
