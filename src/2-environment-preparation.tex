@@ -9,15 +9,9 @@
 \end{enumerate}
 \section{QEMU安装（二选一）}
 \subsection{软件包安装}
-Linux:
 \begin{lstlisting}[language=bash]
 sudo apt-get install qemu-system-x86
-\end{lstlisting}
-
-Windows:
-\begin{lstlisting}[language=bash]
-choco install qemu
-# 需手动将程序添加到PATH
+qemu-system-x86_64 --version #检查QEMU版本
 \end{lstlisting}
 \subsection{源码编译安装}
 \begin{lstlisting}[language=bash]
@@ -127,7 +121,7 @@ qemu-system-x86_64 \
     -bios edk2/Build/OvmfX64/DEBUG_GCC5/FV/OVMF.fd \ #OVMF文件路径（暂不启用UEFI可以去掉，使用默认SeaBIOS）
     -append "init=/init console=ttyS0" \ #传递给内核的启动参数：运行启动脚本，配置控制台输出
     -nographic \ #使用命令行界面
-    -enable-kvm #启用kvm加速（Windows可使用-accel whpx）
+    -enable-kvm #启用kvm加速
 \end{lstlisting}
 
 \section{验证}
