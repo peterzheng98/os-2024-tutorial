@@ -1,0 +1,41 @@
+name: Build LaTeX document
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+
+permissions:
+  contents: write
+
+jobs:
+  build_latex:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Git repository
+        uses: actions/checkout@v3
+
+      - name: Compile LaTeX document
+        uses: xu-cheng/latex-action@v2
+        with:
+          root_file: elegantbook-cn.tex
+          latexmk_use_xelatex: true
+
+      - name: Upload PDF file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PDF
+          path: elegantbook-cn.pdf
+
+      - name: Create GitHub Release and Upload PDF
+        uses: softprops/action-gh-release@v1
+        if: github.ref == 'refs/heads/main'
+        with:
+          files: elegantbook-cn.pdf
+          tag_name: v1.${{ github.run_number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
