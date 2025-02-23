@@ -16,8 +16,17 @@ jobs:
           root_file: elegantbook-cn.tex
           latexmk_use_xelatex: true
 
-      - name: Upload PDF file
+      - name: Upload PDF file as artifact
         uses: actions/upload-artifact@v4
         with:
           name: PDF
           path: elegantbook-cn.pdf
+
+      - name: Create GitHub Release and Upload PDF
+        uses: softprops/action-gh-release@v1
+        if: github.ref == 'refs/heads/main'
+        with:
+          files: elegantbook-cn.pdf
+          tag_name: v1.${{ github.run_number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
