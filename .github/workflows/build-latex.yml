@@ -34,6 +34,6 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           files: elegantbook-cn.pdf
-          tag_name: v1._${{ github.run_number }}
+          tag_name: v1.${{ github.run_number }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
