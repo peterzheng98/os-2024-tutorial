@@ -25,8 +25,8 @@ jobs:
       - name: Create a tag based on commit SHA
         run: |
           if [ "${GITHUB_REF}" == "refs/heads/main" ]; then
-            git tag ci_${{ github.run_number }}
-            git push origin ci_${{ github.run_number }}
+            git tag v1.${{ github.run_number }}
+            git push origin v1.${{ github.run_number }}
           fi
 
       - name: Create GitHub Release and Upload PDF
@@ -34,6 +34,6 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           files: elegantbook-cn.pdf
-          tag_name: ci_${{ github.run_number }}
+          tag_name: v1._${{ github.run_number }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
