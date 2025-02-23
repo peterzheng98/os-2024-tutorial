@@ -86,6 +86,7 @@ make menuconfig
 
 make -j$(nproc) && make install
 \end{lstlisting}
+如果在编译过程中出现错误（ TCA\_CBQ\_MAX undeclared ），一种解决方式是直接删除出错的 “tc.c” 文件。之后就可以正常编译了（版本 1.32.0 可以用此方法解决）。
 
 \subsection{EDK2编译}
 EDK2的可编译源码在git submodule里，因此相对简单可靠的方式就是直接按照官网所说的那样：
@@ -113,7 +114,7 @@ build
 
 \subsection{制作initramfs}
 \subsubsection{创建启动脚本}
-\begin{lstlisting}[language=bash]
+\begin{lstlisting}[language=bash, language=bash, showstringspaces=false]
 cd busybox-1.x.x/_install/
 mkdir -p proc sys dev tmp
 echo -e '#!/bin/sh\nmount -t proc none /proc\nmount -t sysfs none /sys\nmount -t tmpfs none /tmp\nmount -t devtmpfs none /dev\necho "Hello Linux!"\nexec /bin/sh' > init
@@ -129,16 +130,16 @@ find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../initramfs.cpio.gz
 \subsubsection{图形界面启动}
 \begin{lstlisting}[language=bash]
 qemu-system-x86_64 \
-    -kernel ./linux-5.x.x/arch/x86/boot/bzImage \
-    -initrd ./busybox-1.x.x/initramfs.cpio.gz \
+    -kernel ./kernel/linux-5.x.x/arch/x86/boot/bzImage \
+    -initrd ./kvm/busybox-1.x.x/initramfs.cpio.gz \
     -append "init=/init"
 \end{lstlisting}
 
 \subsubsection{字符界面启动}
-\begin{lstlisting}[language=bash]
+\begin{lstlisting}[language=bash, showstringspaces=false]
 qemu-system-x86_64 \
-    -kernel ./linux-5.19/arch/x86/boot/bzImage \
-    -initrd ./busybox-1.35.0/initramfs.cpio.gz \
+    -kernel ./kernel/linux-5.x.x/arch/x86/boot/bzImage \
+    -initrd ./kvm/busybox-1.x.x/initramfs.cpio.gz \
     -nographic \
     -append "init=/init console=ttyS0"
 \end{lstlisting}
