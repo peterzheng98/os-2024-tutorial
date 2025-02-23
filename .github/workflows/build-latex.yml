@@ -8,6 +8,9 @@ on:
     branches:
       - '**'
 
+permissions:
+  contents: write
+
 jobs:
   build_latex:
     runs-on: ubuntu-latest
