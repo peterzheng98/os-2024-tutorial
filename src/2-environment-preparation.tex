@@ -71,7 +71,20 @@ sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 70 # 切换 
 \end{lstlisting}
 经过这些操作后，应该可以正常编译 Linux 内核了。
 
-\subsection{BusyBox编译}
+\subsection{BusyBox}
+\subsubsection{直接安装}
+直接使用你的开发环境自带的包管理器安装busybox，然后在后面制作initramfs的过程中添加这两步：
+
+先把busybox拷贝进initramfs:
+\begin{lstlisting}[language=bash]
+cp $(which busybox) "${INITRAMFS_DIR}/bin/busybox"
+\end{lstlisting}
+
+然后在系统启动脚本里添加：
+\begin{lstlisting}[language=bash]
+/bin/busybox --install -s /bin
+\end{lstlisting}
+\subsubsection{手动编译安装}
 这里可以采用其他发行版（例如Ubuntu发行版等）。
 \begin{lstlisting}[language=bash]
 mkdir ~/kvm && cd ~/kvm
@@ -199,8 +212,8 @@ make
 
 然后到edk2的conf目录下，创建target.txt(template在readme里面)
 然后修改：
-TARGET_ARCH           = X64
-TOOL_CHAIN_TAG        = GCC5
+TARGET\_ARCH           = X64
+TOOL\_CHAIN\_TAG        = GCC5
 
 \subsubsection{编译UEFI模拟器和UEFI工程}
 先到edk2目录下，然后执行
@@ -210,11 +223,11 @@ build
 \end{lstlisting}
 
 然后到target.txt里面改一下：
-ACTIVE_PLATFORM       = OvmfPkg/OvmfPkgX64.dsc
+ACTIVE\_PLATFORM       = OvmfPkg/OvmfPkgX64.dsc
 
 \subsubsection{运行}
 首先下载一个ubuntu的iso镜像，比如ubuntu-24.04.1-live-server-amd64.iso
-然后找到自己的OVMF.fd，一般在edk2/Build/OvmfX64/DEBUG_GCC5/FV/OVMF.fd下
+然后找到自己的OVMF.fd，一般在edk2/Build/OvmfX64/DEBUG\_GCC5/FV/OVMF.fd下
 下面的bios就是跑一下自己编译出的UEFI模拟器，cdrom就是iso镜像，m 4096是内存大小，enable-kvm是开启虚拟化加速
 正常来说sudo可以不加，m可以不加，kvm的指令不需要加，但是我不加的话会报错，所以加上了
 \begin{lstlisting}[language=bash]
