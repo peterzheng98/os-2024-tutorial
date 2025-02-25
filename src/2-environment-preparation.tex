@@ -108,7 +108,15 @@ git clone -b stable/202408 https://github.com/tianocore/edk2.git
 cd edk2
 git submodule update --init
 \end{lstlisting}
+
 在编译之前，需要在系统里安装一些基础的包（例如base-devel uuid、nasm、acpica），然后就可以编译BaseTools。
+
+\begin{lstlisting}[language=bash]
+    sudo apt install iasl nasm
+\end{lstlisting}
+
+在笔者实践的过程中，遇到了默认安装的 nasm 版本过低，导致后续编译出错的问题。读者可参考后文 \ref{compile-edk2} 的内容，自行编译 nasm。
+
 \begin{lstlisting}[language=bash]
 source edksetup.sh
 make -C BaseTools -j$(nproc)
@@ -181,7 +189,8 @@ git submodule update --init  #大概需要几分钟
 cd ..
 \end{lstlisting}
 
-\subsubsection{网上找到的可能需要安装的一堆东西}
+\subsubsection{网上找到的可能需要安装的一堆东西} \label{compile-edk2}
+
 \begin{lstlisting}[language=bash]
 sudo apt-get install build-essential uuid-dev
 sudo apt-get install uuid-dev nasm bison flex
@@ -190,6 +199,7 @@ sudo apt-get install libx11-dev x11proto-xext-dev libxext-dev
 
 将 NASM 更新到 2.15.x 以上版本，当前的edk2项目需要依赖nasm2.15以上版本，否则编译会报错
 nasm各版本下载链接：http://www.nasm.us/pub/nasm/releasebuilds/?C=M;O=D
+(特别注意，推荐下载 .tar.xz 格式的 source code, .zip 解压后的文件似乎都是 CRLF 格式，可能会导致编译错误)
 
 \begin{lstlisting}[language=bash]
 cd nasm-2.16
