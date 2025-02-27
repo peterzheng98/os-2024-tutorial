@@ -13,6 +13,8 @@ Linux内核中提供了抓包等服务作为内核的网络套件的一部分。
 \section{高速通信库：NCCL}
 现代的高性能计算已经不能由单节点计算满足，需要多个节点多台机器进行并行计算。随着单节点算力的不断上升，并行计算时的通信成为了影响整个计算集群效率的关键因素。
 传统的网络通信已经不能满足这一通信需求，各个计算卡的厂商普遍提供了自己的高速互联协议（如英伟达的NCCL、华为的HCCL）。
+在这里给出一份可以用于学习参考的文档：\href{https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/examples.html#communicator-creation-and-destruction-examples}{Nvidia NCCL examples}.
+此外，源代码仓库为：\href{https://github.com/NVIDIA/nccl}{Nvidia NCCL}.
 
 目标：通过NCCL实现简单的信息传输，比较和传统使用以太网的速度、正确性差异。
 
