@@ -17,9 +17,9 @@
 \section{Read ACPI Table}
 目标：修改EDK2的UEFI组件，在其中增加函数：\texttt{PrintAllACPITables}。该函数不传入任何参数，要求打印每一张表的地址、长度以及每一张其中所有的信息与校验信息。
 
-可以参考EDK2下的\texttt{AcpiView}，但是不得直接复制。
+可以参考EDK2下的\texttt{AcpiView.c} 中的 \texttt{AcpiView} 函数，但是不得直接复制。
 
-此外，关于 ACPI 的更多信息，可以参考\href{https://uefi.org/sites/default/files/resources/ACPI_Spec_6.5a_Final.pdf}{这本手册}来学习。
+此外，关于 ACPI 的更多信息，可以参考\href{https://uefi.org/sites/default/files/resources/ACPI_Spec_6.5a_Final.pdf}{这本手册}来学习，为了完成对应的任务，也许你只需要关注 ACPI 表的构成和 checksum 的含义即可。
 
 具体测评指标：
 \begin{itemize}
