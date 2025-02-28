@@ -101,7 +101,7 @@ make -j$(nproc) && make install
 \end{lstlisting}
 如果在编译过程中出现错误（ TCA\_CBQ\_MAX undeclared ），一种解决方式是直接删除出错的 “tc.c” 文件。之后就可以正常编译了（版本 1.32.0 可以用此方法解决）。
 
-\subsection{EDK2编译}
+\subsection{EDK2编译（简述）}
 EDK2的可编译源码在git submodule里，因此相对简单可靠的方式就是直接按照官网所说的那样：
 \begin{lstlisting}[language=bash]
 git clone -b stable/202408 https://github.com/tianocore/edk2.git
@@ -236,6 +236,23 @@ build
 ACTIVE\_PLATFORM       = OvmfPkg/OvmfPkgX64.dsc
 
 \subsubsection{运行}
+\paragraph{最小化运行}
+在一开始的任务中，完全没有必要拉起一个完整的系统环境，甚至连Linux系统内核镜像都不需要启动，只需要全程在UEFI环境里执行。
+
+此时的UEFI环境，简单来讲由两部分构成：
+\begin{enumerate}
+	\item OVMF文件：用于在虚拟机中，提供UEFI固件，从而启动UEFI环境。
+	\item 若干.efi文件：UEFI环境下的可执行文件
+\end{enumerate}
+
+之前所说的那个`build`指令，用处就是编译OVMF固件。你可能还希望使用这个命令编译一个更强大的UEFI Shell
+\begin{lstlisting}[language=bash]
+build -p ShellPkg/ShellPkg.dsc
+\end{lstlisting}
+
+然后你会找到一个\texttt{AcpiViewApp.efi}文件，把它挂载进文件系统，你就可以在UEFI Shell里使用它来执行EDK2预先写好的一个AcpiView。
+
+\paragraph{完整运行}
 首先下载一个ubuntu的iso镜像，比如ubuntu-24.04.1-live-server-amd64.iso
 然后找到自己的OVMF.fd，一般在edk2/Build/OvmfX64/DEBUG\_GCC5/FV/OVMF.fd下
 下面的bios就是跑一下自己编译出的UEFI模拟器，cdrom就是iso镜像，m 4096是内存大小，enable-kvm是开启虚拟化加速
@@ -243,3 +260,5 @@ ACTIVE\_PLATFORM       = OvmfPkg/OvmfPkgX64.dsc
 \begin{lstlisting}[language=bash]
 sudo qemu-system-x86_64 -m 4096 -cdrom ~/ubuntu-24.04.1-live-server-amd64.iso -bios ~/OVMF.fd -enable-kvm
 \end{lstlisting}
+
+\
