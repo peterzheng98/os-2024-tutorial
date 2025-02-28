@@ -29,6 +29,13 @@
 \item 每个表的输出必须包含：物理地址（64位十六进制）、表长度（32位十进制）、OEM ID（6字节ASCII）、校验和（8位十六进制）。
 \end{itemize}
 
+\subsection{ACPI Table 结构}
+
+ACPI Table 是一个树状结构，其第一张表是 RSDP(Root System Description Pointer)，它里面存放了 RDST/XDST 的地址。RDST是32位地址，XDST是64位地址，其功能是一样的。
+而 RDST/XDST 中记录了其他表的地址。
+
+注意在 FADT(Fixed ACPI Description Table) 中有还记录 FACS 和 DSDT 的地址，这个两个表无法直接在 RDST/XDST 中找到。
+
 \section{Hack ACPI Table}
 目标：修改EDK2的UEFI组件，在其中增加函数：\texttt{ChangeACPITable}。该函数传入一个\texttt{UINTN}的对象表明修改第几张表、输入\texttt{EFI\_ACPI\_DESCRIPTION\_HEADER*}表明待修改的数值，要求修改完成后打印每一张表的地址、长度以及每一张其中所有的信息与校验信息。
 
