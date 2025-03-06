@@ -250,7 +250,7 @@ ACTIVE\_PLATFORM       = OvmfPkg/OvmfPkgX64.dsc
 build -p ShellPkg/ShellPkg.dsc
 \end{lstlisting}
 
-然后你会找到一个\texttt{AcpiViewApp.efi}文件，把它挂载进文件系统，你就可以在UEFI Shell里使用它来执行EDK2预先写好的一个AcpiView。
+然后你会找到一个\texttt{AcpiViewApp.efi}文件（可以使用\texttt{find . -name "AcpiViewApp.efi"}来寻找它），把它挂载进文件系统，你就可以在UEFI Shell里使用它来执行EDK2预先写好的一个AcpiView。详细的示例，参考\hyperref[appendix:launchuefi]{附录}
 
 \paragraph{完整运行}
 首先下载一个ubuntu的iso镜像，比如ubuntu-24.04.1-live-server-amd64.iso
