@@ -7,9 +7,10 @@ Linux通过一套统一的VFS（虚拟文件系统）抽象达成这一目标。
 
 \section{inode和扩展属性管理}
 
-目标：读取设置inode的基本信息，引入新的\textbf{文件扩展属性(Extended file attributes)}。
+目标：读取设置inode的基本信息，引入新的\textbf{文件扩展属性(Extended file attributes)}。你需要实现一个\texttt{.c}的文件\textbf{直接}调用系统调用调整文件扩展属性。
 
-测试：文件扩展属性的读写。
+
+测试：测试程序会先调用你的程序进行文件扩展属性的读写，随后和标准的文件扩展属性进行比对。你不需要在这个作业中修改内核。
 
 
 
@@ -17,9 +18,24 @@ Linux通过一套统一的VFS（虚拟文件系统）抽象达成这一目标。
 由于文件系统在Linux中被编译为内核对象（kernel object），文件系统崩溃会传导到内核造成内核不可用。此外，内核对象的灵活性较差。
 Linux给出了FUSE的服务，允许在用户态实现一个文件系统。
 
-目标：使用FUSE实现GPT服务。声明一个GPTfs，其中的目录为每一个对话session，对话session文件夹下的input为本轮用户输入的prompt，output文件为GPT输出的结果。每一轮对话都是单轮对话，无需考虑记录上下文。
+目标：使用FUSE实现GPT服务。声明一个GPTfs，其中的目录为每一个对话session，对话session文件夹下的input为本轮用户输入的prompt，output文件为GPT输出的结果。每一轮对话都是单轮对话，无需考虑记录上下文。具体而言，你需要实现：
 
-测试：基本的读写效果
+\begin{itemize}
+\item 实现一个名为\texttt{GPTfs}的FUSE文件系统。
+\item 文件系统的根目录下，每次创建一个新目录即表示开启一个新的对话会话（session）。
+\item 在每个对话session目录下，包含以下文件：
+\begin{enumerate}
+\item \texttt{input}：用于存放本轮用户输入的prompt。
+\item \texttt{output}：用于存放GPT生成的回复结果。
+\item \texttt{error}：用于存放网络连接错误等其他错误内容。
+\end{enumerate}
+\item 对\texttt{input}文件的写入操作应触发GPT处理，生成回复内容并写入对应的\texttt{output}文件。
+\item 每一轮对话都是单轮对话，无需记录上下文。
+\end{itemize}
+
+
+测试：测试程序会写入input文件，随后你应当调用GPT服务输出，在这里测试程序会等待5秒后检查error和output。
+
 
 \section{用户空间下的内存磁盘}
 随着硬件的发展，内存的价格已经显著下降。
@@ -28,6 +44,40 @@ Linux给出了FUSE的服务，允许在用户态实现一个文件系统。
 
 目标：使用FUSE实现RAMfs功能，要求读写碎片尽可能少并且支持硬链接。
 
-提示：可以参考内核中RAMfs的功能，但是不要抄袭。
+\subsection{接口要求}
 
-测试：文件读写和并发读写。
+\begin{itemize}
+\item 实现FUSE文件系统需要的回调函数，包括但不限于：
+\begin{enumerate}
+\item \texttt{getattr}：获取文件或目录的属性。
+\item \texttt{readdir}：读取目录内容。
+\item \texttt{mknod}：创建文件。
+\item \texttt{mkdir}：创建目录。
+\item \texttt{unlink}：删除文件。
+\item \texttt{rmdir}：删除目录。
+\item \texttt{rename}：重命名文件或目录。
+\item \texttt{link}：创建硬链接。
+\item \texttt{open}、\texttt{read}、\texttt{write}：文件的打开、读取和写入操作。
+\end{enumerate}
+\item 设计高效的内存数据结构，管理文件系统的元数据和文件内容。
+\item 实现对硬链接的支持，正确更新inode的引用计数，确保文件在所有链接被删除后才释放内存。
+\item 处理并发的读写请求，确保数据的一致性和线程安全。
+\end{itemize}
+
+\subsection{测试}
+
+\begin{itemize}
+\item 基本的文件和目录操作测试：创建、读取、写入、删除、重命名。
+\item 硬链接的创建和删除（inode引用计数的正确性以及文件内容的共享）。
+\item 多线程高并发的读写操作。
+\item 检查内存使用情况，评估内存泄露和文件碎片。
+\end{itemize}
+
+\subsection{提示}
+
+\begin{itemize}
+\item 可以参考内核中RAMfs的设计思路，但不得直接复制代码。
+\item 注意内存的分配和释放，确保每次分配的内存都有对应的释放操作。
+\item 使用锁或者其他同步机制来处理并发访问。
+\item 充分测试各种边界条件，如大文件、小文件、深层目录结构等。
+\end{itemize}
