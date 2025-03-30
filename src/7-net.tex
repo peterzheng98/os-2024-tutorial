@@ -1,28 +1,130 @@
 \chapter{网络与外部设备}
-\section{tcpdump和socket管理}
-Linux内核中提供了抓包等服务作为内核的网络套件的一部分。
 
-目标：实现如下内容
+\section{tcpdump和socket管理}
+Linux内核提供了抓包(caputure packets)等服务作为内核网络套件的一部分。本节的目标包括对tcpdump进行定制化修改，以及对内核Socket的管理进行改进，从而实现更高的安全性和基于线程级的公平性(per-thread socket fairness)。
+
+\subsection{功能目标}
 \begin{enumerate}
-    \item 按照一定条件进行抓包（要求修改tcpdump，不允许直接用现成的参数）
-    \item 内核管理socket的安全性实现per-thread的socket fairness管理。
+    \item \textbf{定制化tcpdump抓包：}在tcpdump基础上进行修改，允许用户在不依赖tcpdump现有参数的情况下，自行传入过滤规则或者其他控制参数，以满足特定的抓包需求。
+    \item \textbf{Socket公平性管理：}在内核中为每个线程提供独立的Socket资源上限或限流控制（fairness），确保多线程在执行网络操作时不会发生资源独占或过度使用的现象。
 \end{enumerate}
 
-测试：多Socket读写的管理（测试p99延迟）
+\subsubsection{标准函数声明示例}
+以下仅给出示例，用于说明如何编写对应接口的函数声明，具体细节可根据实际需求进行扩展。
+
+\begin{lstlisting}[language=C, caption={示例：自定义tcpdump抓包接口}]
+/**
+ * @brief 使用自定义过滤规则对网络数据进行抓包
+ * @param iface          需要进行抓包的网络接口名称
+ * @param custom_filter  用户自定义的过滤表达式
+ * @param buffer         存储抓取到的数据缓冲区
+ * @param buffer_size    存储抓包数据的缓冲区大小
+ * @return 成功时返回0，失败返回非0错误码
+ */
+int custom_tcpdump_capture(const char* iface, 
+                           const char* custom_filter, 
+                           void* buffer, 
+                           size_t buffer_size);
+\end{lstlisting}
+
+\begin{lstlisting}[language=C, caption={示例：线程级别Socket公平性管理接口}]
+/**
+ * @brief 为特定线程配置Socket级别的公平管理策略
+ * @param thread_id          需要配置的线程ID
+ * @param max_socket_allowed 该线程允许打开的最大Socket数
+ * @param priority_level     该线程的优先级（影响Socket分配策略）
+ * @return 成功时返回0，失败返回非0错误码
+ */
+int configure_socket_fairness(pthread_t thread_id, 
+                              int max_socket_allowed, 
+                              int priority_level);
+\end{lstlisting}
+
+\subsection{测试}
+\begin{itemize}
+    \item \textbf{定制抓包正确性：}验证是否确实只抓取了满足自定义过滤规则的数据。  
+    \item \textbf{多Socket公平性：}测试多线程同时创建并使用Socket时，是否能按照规划的最大数目和优先级进行分配，并观察线程间资源竞争的情况。
+    \item \textbf{性能指标：}在系统负载较高时统计p99延迟（多Socket读写操作）。
+\end{itemize}
 
 \section{高速通信库：NCCL}
-现代的高性能计算已经不能由单节点计算满足，需要多个节点多台机器进行并行计算。随着单节点算力的不断上升，并行计算时的通信成为了影响整个计算集群效率的关键因素。
-传统的网络通信已经不能满足这一通信需求，各个计算卡的厂商普遍提供了自己的高速互联协议（如英伟达的NCCL、华为的HCCL）。
-在这里给出一份可以用于学习参考的文档：\href{https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/examples.html#communicator-creation-and-destruction-examples}{Nvidia NCCL examples}.
-此外，源代码仓库为：\href{https://github.com/NVIDIA/nccl}{Nvidia NCCL}.
+由于单节点计算能力的提升，分布式计算对通信带宽和延迟提出了极高要求。传统以太网通信常常无法满足此种高吞吐需求。NCCL (NVIDIA Collective Communications Library) 提供了GPU间高速通信接口，可广泛应用于深度学习训练场景。下文给出了相关参考文档以及源代码仓库：
+\begin{itemize}
+    \item \href{https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/examples.html#communicator-creation-and-destruction-examples}{Nvidia NCCL examples}
+    \item \href{https://github.com/NVIDIA/nccl}{Nvidia NCCL GitHub repo}
+\end{itemize}
 
-目标：通过NCCL实现简单的信息传输，比较和传统使用以太网的速度、正确性差异。
+\subsection{功能目标}
+\begin{enumerate}
+    \item 在多GPU环境下，使用NCCL实现简单的信息传输（如广播、All-Reduce等），验证数据传输的正确性。
+    \item 与以太网通信方式进行带宽和延迟对比，观察速度提升和正确性差异。
+\end{enumerate}
 
+\subsubsection{标准函数声明示例}
+\begin{lstlisting}[language=C, caption={示例：NCCL通信例程接口}]
+/**
+ * @brief 使用NCCL执行多GPU数据广播操作
+ * @param data         需要广播的数据缓冲区指针
+ * @param count        数据元素的个数
+ * @param root         广播发送方的GPU ID
+ * @param comm         NCCL通信器
+ * @return ncclSuccess表示成功，其他错误码请参照NCCL官方文档
+ */
+ncclResult_t nccl_broadcast_data(void* data, 
+                                 size_t count, 
+                                 int root, 
+                                 ncclComm_t comm);
+\end{lstlisting}
 
+\subsection{测试项与测试方式}
+\begin{itemize}
+    \item \textbf{正确性测试：}不同GPU间进行广播、聚合(All-Reduce)后，结果是否一致，误差是否在可接受范围内（通常为浮点运算误差）。
+    \item \textbf{性能测量：}分别采用NCCL和以太网（TCP/IP）进行跨节点通信，记录带宽、吞吐量、延迟等指标，对比二者差异。
+\end{itemize}
 
 \section{数据平面开发套件：DPDK}
-当前的网络协议都在内核空间中，因此涉及网络的操作都需要通过特权切换进入内核。
-对于需要高速通信的程序，反复的上下文切换显然不符合要求。
-不过，由于完整实现基于DPDK的通信所需要的代码量太大，我们在这里进行简化，只需要实现简单的网络即可。
+DPDK( Data Plane Development Kit )是一套在用户态加速网络收发的开发工具包。它将网络协议栈从内核态卸载到用户态中运行，从而极大减少特权级切换(toggle between privileged levels)并提升网络吞吐量。本节在有限的复杂度下，演示如何利用DPDK实现多进程带宽平衡的QoS管理。
 
-目标：实现用户态基于DPDK的网络QoS管理，实现多个进程访问网络的带宽平衡。
+\subsection{功能目标}
+\begin{enumerate}
+    \item 在用户态基于DPDK实现最简化的网络收发功能。
+    \item 设计一个QoS管理策略，使得多个进程共享网络带宽时，能根据设定的策略进行带宽分配并保证平衡。
+\end{enumerate}
+
+\subsubsection{标准函数声明示例}
+\begin{lstlisting}[language=C, caption={示例：DPDK QoS管理接口}]
+/**
+ * @brief 在DPDK环境下为队列配置带宽限速
+ * @param queue_id       DPDK端口队列编号
+ * @param rate_limit     限速值（单位：Mbps）
+ * @return 0表示成功，非0表示发生错误
+ */
+int dpdk_qos_configure_rate_limit(uint16_t queue_id, 
+                                  uint32_t rate_limit);
+
+/**
+ * @brief 发送数据包入口函数
+ * @param buffer         需要发送的包数据指针
+ * @param len            包长度
+ * @param queue_id       发送使用的DPDK端口队列编号
+ * @return 发送成功的数据包数，出现错误返回负值
+ */
+int dpdk_send_packet(const uint8_t* buffer, 
+                     size_t len, 
+                     uint16_t queue_id);
+\end{lstlisting}
+
+\subsection{测试项与测试方式}
+\subsubsection{测试项}
+\begin{itemize}
+    \item \textbf{基本发送接收功能：}在用户态能够正确收包、发包，确保功能可用。
+    \item \textbf{多进程带宽平衡：}当多个进程请求同时发送数据时，观察各进程的实际带宽分配是否符合设定的QoS管理策略。
+    \item \textbf{性能指标：}记录最大吞吐量、p99延迟，比较在无QoS管理与有QoS管理时的性能差异。
+\end{itemize}
+
+\subsubsection{测试方法}
+\begin{enumerate}
+    \item \textbf{功能正确性：}  设置单进程收发场景，发送固定大小的数据包，检查收发统计信息。
+    \item \textbf{多进程带宽平衡：}  并行启动多个进程，各自不断发送数据包。使用dpdk\_qos\_configure\_rate\_limit函数为不同队列设置不同的速率限制（不同版本可能略有不同，可以使用自己期望的版本并且告知助教后进行调整），测试带宽使用情况是否符合预期配额。
+    \item \textbf{压力测试：} 持续提高数据发送速率或缩短发包间隔，检测稳定性、丢包率和延迟情况，测试不同QoS设置的效果。
+\end{enumerate}
