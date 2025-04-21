@@ -27,6 +27,17 @@
 \item 每个表的输出必须包含：物理地址（64位十六进制）、表长度（32位十进制）、OEM ID（6字节ASCII）、校验和（8位十六进制）。
 \end{itemize}
 
+为了能够在 UEFI Shell 中运行该函数，你可以学习如何自定义一个模块，或者在一个模块中添加应用。然后，你可以用这样的代码来测试你的程序：
+
+\begin{lstlisting}[language=bash]
+    cp edk2/Build/Shell/DEBUG_GCC5/X64/...{Your application efi file here} ./uefi
+    qemu-system-x86_64 \
+      -drive if=pflash,format=raw,readonly=on,file={Your OVMF_CODE.fd here} \
+      -drive if=pflash,format=raw,file={Your OVMF_VARS.fd here} \
+      -drive file=fat:rw:./uefi,format=raw,if=ide,index=0\
+      -nographic 
+    \end{lstlisting}
+
 \subsection{ACPI Table 结构}
 
 ACPI Table 是一个树状结构，其第一张表是 RSDP(Root System Description Pointer)，它里面存放了 RDST/XDST 的地址。RDST是32位地址，XDST是64位地址，其功能是一样的。
