@@ -65,14 +65,14 @@ In MyACPI.inf :
 
 \begin{lstlisting}
 [Defines]
-  INF_VERSION     = 0x00011451       # 此处出于一些规定需要大于等于0x00010005
-  BASE_NAME       = MyACPI
-  MODULE_TYPE     = UEFI_APPLICATION # 否则无法生成.efi
-  VERSION_STRING  = 1.0
-  ENTRY_POINT     = MyACPIFunc       # 函数入口
+  INF_VERSION             = 0x00011451        # 此处出于一些规定需要≥0x00010005
+  BASE_NAME               = MyACPI
+  MODULE_TYPE             = UEFI_APPLICATION  # 否则无法生成.efi
+  VERSION_STRING          = 1.0
+  ENTRY_POINT             = MyACPIFunc        # 函数入口
 
 [Sources]
-  MyACPI.c                           # 源代码相对.inf的路径
+  MyACPI.c                                    # 源代码相对.inf的路径
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -88,12 +88,12 @@ In MyACPIPkg.dsc :
 
 \begin{lstlisting}
 [Defines]
-  PLATFORM_NAME            = MyACPI
-  PLATFORM_GUID            = XXXXXXXX-XXXXXXXX # 应由各位自行生成
-  PLATFORM_VERSION         = 0.01
-  OUTPUT_DIRECTORY         = Build/MyACPI      # .efi 输出目录
-  SUPPORTED_ARCHITECTURES  = IA32|X64|EBC|ARM|AARCH64|RISCV64|LOONGARCH64
-  BUILD_TARGETS            = DEBUG|RELEASE
+  PLATFORM_NAME           = MyACPI
+  PLATFORM_GUID           = XXXXXXXX-XXXXXXXX # 应由各位自行生成
+  PLATFORM_VERSION        = 0.01
+  OUTPUT_DIRECTORY        = Build/MyACPI      # .efi 输出目录
+  SUPPORTED_ARCHITECTURES = IA32|X64|EBC|ARM|AARCH64|RISCV64|LOONGARCH64
+  BUILD_TARGETS           = DEBUG|RELEASE
 
 !include MdePkg/MdeLibs.dsc.inc
   
@@ -105,7 +105,7 @@ In MyACPIPkg.dsc :
   # 比较取巧的方式是直接复制其他 .dsc 中的一坨
   
 [Components]
-  MyACPIPkg/MyACPI.inf                      # .inf 相对 edk2/ 根目录的路径
+  MyACPIPkg/MyACPI.inf                        # .inf 相对 edk2/ 根目录的路径
 \end{lstlisting}
 
 \section{Hack ACPI Table}
