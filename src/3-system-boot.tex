@@ -49,7 +49,7 @@ ACPI Table 是一个树状结构，其第一张表是 RSDP(Root System Descripti
 为了编译出能在 UEFI 中运行的 .efi 格式组件，我们需要在编译时指定特殊的编译目标。
 
 例如，在 Rust 中，你只需要在 rust-toolchain.toml 中指定
-\texttt{targets = ["x86_64-unknown-uefi"]}.
+\texttt{targets = ["x86\_64-unknown-uefi"]}.
 
 或者，使用 gcc 或 clang ，也可以通过一系列复杂的命令行参数达成这一目的。
 
