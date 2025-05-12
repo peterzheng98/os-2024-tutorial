@@ -54,6 +54,69 @@ ACPI Table 是一个树状结构，其第一张表是 RSDP(Root System Descripti
 
 注意在 FADT(Fixed ACPI Description Table) 中有还记录 FACS 和 DSDT 的地址，这个两个表无法直接在 RDST/XDST 中找到。
 
+\subsection{.efi 编译与 EDK2 辅助文件撰写}
+为了编译出能在 UEFI 中运行的 .efi 格式组件，我们需要在编译时指定特殊的编译目标。
+
+例如，在 Rust 中，你只需要在 rust-toolchain.toml 中指定
+\texttt{targets = ["x86\_64-unknown-uefi"]}.
+
+或者，使用 gcc 或 clang ，也可以通过一系列复杂的命令行参数达成这一目的。
+
+当然，为了利用 EDK2 中已有的结构体、宏、函数定义等，使用 EDK2 环境进行组件编写是比较好的选择。
+而且，也只需要 \texttt{source edksetup.sh; build -p MyACPIPkg/MyACPIPkg.dsc} 即可像其他Pkg一般完成编译。
+
+唯一的障碍是，在 EDK2 中，除了 .c 代码以外，还需要撰写比较麻烦的 .dsc 与 .inf 文件。
+其他组件（如\texttt{helloworld.c}）的这两个文件可以作为撰写的参考，但由于环境复杂，文件内容相对繁多。但实际上，只有少数 field 需要定义和填充。
+
+下面是一个Minimum Working Example: 
+
+In MyACPI.inf :
+
+\begin{lstlisting}
+[Defines]
+  INF_VERSION             = 0x00011451        # 此处出于一些规定需要≥0x00010005
+  BASE_NAME               = MyACPI
+  MODULE_TYPE             = UEFI_APPLICATION  # 否则无法生成.efi
+  VERSION_STRING          = 1.0
+  ENTRY_POINT             = MyACPIFunc        # 函数入口
+
+[Sources]
+  MyACPI.c                                    # 源代码相对.inf的路径
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  PcdLib
+\end{lstlisting}
+
+In MyACPIPkg.dsc :
+
+\begin{lstlisting}
+[Defines]
+  PLATFORM_NAME           = MyACPI
+  PLATFORM_GUID           = XXXXXXXX-XXXXXXXX # 应由各位自行生成
+  PLATFORM_VERSION        = 0.01
+  OUTPUT_DIRECTORY        = Build/MyACPI      # .efi 输出目录
+  SUPPORTED_ARCHITECTURES = IA32|X64|EBC|ARM|AARCH64|RISCV64|LOONGARCH64
+  BUILD_TARGETS           = DEBUG|RELEASE
+
+!include MdePkg/MdeLibs.dsc.inc
+  
+[LibraryClasses]
+  UefiApplicationEntryPoint|MdePkg/Library/UefiApplicationEntryPoint/UefiApplicationEntryPoint.inf
+  # ...
+  # 此处取决于你 #include 的头文件等依赖库
+  # 看 build 时报的缺文件错误信息即可定向修补
+  # 比较取巧的方式是直接复制其他 .dsc 中的一坨
+  
+[Components]
+  MyACPIPkg/MyACPI.inf                        # .inf 相对 edk2/ 根目录的路径
+\end{lstlisting}
+
 \section{Hack ACPI Table}
 目标：修改EDK2的UEFI组件，在其中增加函数：\texttt{ChangeACPITable}。该函数传入一个\texttt{UINTN}的对象表明修改第几张表、输入\texttt{EFI\_ACPI\_DESCRIPTION\_HEADER*}表明待修改的数值，要求修改完成后打印每一张表的地址、长度以及每一张其中所有的信息与校验信息。
 
