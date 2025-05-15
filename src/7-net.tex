@@ -44,10 +44,10 @@ int configure_socket_fairness(pthread_t thread_id,
 tcpdump 库基于 linux 内核的 libpcap 库实现，提供了对网络数据包的捕获和分析功能。我们可以利用 `<pcap.h>` 中的函数来实现这一功能。
 具体而言，我们可以通过以下几步来完成定制化抓包：
 \begin{enumerate}
-    \item 使用 `pcap_open_live` 函数打开对应的网络设备。
-    \item 使用 `pcap_compile` 函数编译用户自定义的过滤规则。
-    \item 使用 `pcap_setfilter` 应用过滤规则。
-    \item 使用 `pcap_loop` 函数开始进行抓包，并且进行进一步地处理。
+    \item 使用 `pcap\_open\_live` 函数打开对应的网络设备。
+    \item 使用 `pcap\_compile` 函数编译用户自定义的过滤规则。
+    \item 使用 `pcap\_setfilter` 应用过滤规则。
+    \item 使用 `pcap\_loop` 函数开始进行抓包，并且进行进一步地处理。
 
 \subsection{测试}
 \begin{itemize}
