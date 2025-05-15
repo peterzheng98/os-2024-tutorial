@@ -146,7 +146,7 @@ In MyACPIPkg.dsc :
 
 \textbf{启动服务阶段（Boot Services）}
 
-此阶段会加载 \texttt{UEFI} 启动驱动（UEFI Boot Drivers）、运行时驱动（UEFI Runtime Drivers）和应用程序（UEFI Applications）。可以同时使用 \texttt{UEFI} 的启动服务（Boot Services）和运行时服务（Runtime Services）。此阶段通常以运行加载操作系统的引导加载程序（bootloader）为结束。该阶段在调用 \texttt{ExitBootServices()} 后结束，系统进入运行时模式（Runtime mode）。
+此阶段会加载 \texttt{UEFI} 启动驱动（UEFI Boot Service Drivers）、运行时驱动（UEFI Runtime Drivers）和应用程序（UEFI Applications）。可以同时使用 \texttt{UEFI} 的启动服务（Boot Services）和运行时服务（Runtime Services）。此阶段通常以运行加载操作系统的引导加载程序（bootloader）为结束。该阶段在调用 \texttt{ExitBootServices()} 后结束，系统进入运行时模式（Runtime mode）。
 
 \textbf{运行时阶段（Runtime）}
 
