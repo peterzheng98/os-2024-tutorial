@@ -40,6 +40,16 @@ int configure_socket_fairness(pthread_t thread_id,
                               int priority_level);
 \end{lstlisting}
 
+\subsection{tcpdump定制化抓包}
+tcpdump 库基于 linux 内核的 libpcap 库实现，提供了对网络数据包的捕获和分析功能。我们可以利用 `<pcap.h>` 中的函数来实现这一功能。
+具体而言，我们可以通过以下几步来完成定制化抓包：
+\begin{enumerate}
+    \item 使用 `pcap\_open\_live` 函数打开对应的网络设备。
+    \item 使用 `pcap\_compile` 函数编译用户自定义的过滤规则。
+    \item 使用 `pcap\_setfilter` 应用过滤规则。
+    \item 使用 `pcap\_loop` 函数开始进行抓包，并且进行进一步地处理。
+\end{enumerate}
+
 \subsection{测试}
 \begin{itemize}
     \item \textbf{定制抓包正确性：}验证是否确实只抓取了满足自定义过滤规则的数据。  
@@ -81,6 +91,17 @@ ncclResult_t nccl_broadcast_data(void* data,
     \item \textbf{正确性测试：}不同GPU间进行广播、聚合(All-Reduce)后，结果是否一致，误差是否在可接受范围内（通常为浮点运算误差）。
     \item \textbf{性能测量：}分别采用NCCL和以太网（TCP/IP）进行跨节点通信，记录带宽、吞吐量、延迟等指标，对比二者差异。
 \end{itemize}
+
+\subsection{更多细节}
+具体而言， nccl 库支持的是 \textbf{GPU} 之间的通信。所以具体而言，在当前的接口下，我们总共需要这样几步来完成工作：
+\begin{enumerate}
+    \item 为当前的 GPU 创建对应的 cuda stream.
+    \item 在 gpu 上分配对应的内存空间。
+    \item 把 主存中的数据拷贝到 GPU 上。
+    \item 调用 nccl 库进行广播。
+    \item cuda 间进行同步，并且释放 gpu 上空间。
+\end{enumerate}
+在当前的接口下，这样应该足够完成工作了。
 
 \section{数据平面开发套件：DPDK}
 DPDK( Data Plane Development Kit )是一套在用户态加速网络收发的开发工具包。它将网络协议栈从内核态卸载到用户态中运行，从而极大减少特权级切换(toggle between privileged levels)并提升网络吞吐量。本节在有限的复杂度下，演示如何利用DPDK实现多进程带宽平衡的QoS管理。
