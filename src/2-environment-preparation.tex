@@ -144,7 +144,7 @@ chmod +x init
 
 \subsubsection{按需添加测试程序}
 
-initramfs 就是我们简易版 Linux 的文件系统，我们可以在里面添加测试程序。如果是用 C 语言编写，在编译时添加 \texttt{-static} 选项静态编译，然后添加到 busybox-1.x.x/_install/bin 里即可。如果程序难以静态编译，则可以使用\hyperref[appendix:dynamic-library]{附录}中的脚本将程序所依赖的动态链接库添加到 initramfs 里。
+initramfs 就是我们简易版 Linux 的文件系统，我们可以在里面添加测试程序。如果是用 C 语言编写，在编译时添加 \texttt{-static} 选项静态编译，然后添加到 \texttt{busybox-1.x.x/\_install/bin} 里即可。如果程序难以静态编译，则可以使用\hyperref[appendix:dynamic-library]{附录}中的脚本将程序所依赖的动态链接库添加到 initramfs 里。
 
 
 \subsubsection{打包文件系统}
