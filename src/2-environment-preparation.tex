@@ -10,6 +10,7 @@
 
 \section{在QEMU中启动Linux镜像}
 \begin{remark}
+    \label{qcow-ubuntu-image}
 简单起见你可以直接使用预制作好的\texttt{qcow} Ubuntu镜像作为磁盘镜像由qemu直接引导，具体教程：\url{https://documentation.ubuntu.com/public-images/en/latest/public-images-how-to/launch-qcow-with-qemu/}。如果你选用这个方案，你只需要确保QEMU正常安装即可。
 \end{remark}
 
@@ -50,7 +51,7 @@ make -j$(nproc)
 \subsection{Linux内核编译}
 \begin{lstlisting}[language=bash]
 # 安装依赖
-sudo apt-get install git fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison 
+sudo apt-get install git fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison
 mkdir ~/kernel && cd ~/kernel
 wget https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/linux-5.x.x.tar.gz
 tar -xf linux-5.x.x.tar.gz
@@ -164,11 +165,8 @@ qemu-system-x86_64 \
     -nographic \
     -append "init=/init console=ttyS0"
 \end{lstlisting}
-如果使用EDK2的话，可以在参数里加上两行：
-\begin{lstlisting}[language=bash]
-    -drive if=pflash,format=raw,unit=0,file="${OVMF_CODE}",readonly=on \
-    -drive if=pflash,format=raw,unit=1,file="${PLAYGROUND_DIR}/OVMF_VARS.fd" \
-\end{lstlisting}
+
+使用EDK2的UEFI模拟器启动时，需要使用\ref{run-edk2}中的命令。
 
 \subsection{验证}
 \begin{itemize}
@@ -178,6 +176,8 @@ qemu-system-x86_64 \
 \end{itemize}
 
 \section{Linux环境部署 EDK2 开发环境}
+
+\subsection{编译 EDK2}
 
 python的版本要求>=3.11，
 
@@ -235,8 +235,11 @@ build
 然后到target.txt里面改一下：
 ACTIVE\_PLATFORM       = OvmfPkg/OvmfPkgX64.dsc
 
-\subsubsection{运行}
-\paragraph{最小化运行}
+\subsection{运行}
+
+\label{run-edk2}
+
+\subsubsection{只运行UEFI环境}
 在一开始的任务中，完全没有必要拉起一个完整的系统环境，甚至连Linux系统内核镜像都不需要启动，只需要全程在UEFI环境里执行。
 
 此时的UEFI环境，简单来讲由两部分构成：
@@ -252,13 +255,88 @@ build -p ShellPkg/ShellPkg.dsc
 
 然后你会找到一个\texttt{AcpiViewApp.efi}文件（可以使用\texttt{find . -name "AcpiViewApp.efi"}来寻找它），把它挂载进文件系统，你就可以在UEFI Shell里使用它来执行EDK2预先写好的一个AcpiView。详细的示例，参考\hyperref[appendix:launchuefi]{附录}
 
-\paragraph{完整运行}
-首先下载一个ubuntu的iso镜像，比如ubuntu-24.04.1-live-server-amd64.iso
-然后找到自己的OVMF.fd，一般在edk2/Build/OvmfX64/DEBUG\_GCC5/FV/OVMF.fd下
-下面的bios就是跑一下自己编译出的UEFI模拟器，cdrom就是iso镜像，m 4096是内存大小，enable-kvm是开启虚拟化加速
-正常来说sudo可以不加，m可以不加，kvm的指令不需要加，但是我不加的话会报错，所以加上了
+进入 \texttt{UEFI Shell} 后，执行下列命令：
+
 \begin{lstlisting}[language=bash]
-sudo qemu-system-x86_64 -m 4096 -cdrom ~/ubuntu-24.04.1-live-server-amd64.iso -bios ~/OVMF.fd -enable-kvm
+    fs0:            # go to `uefi` directory
+    AcpiViewApp.efi # run AcpiView
+    reset           # if you add `-no-reboot` to the qemu command, this will exit the UEFI Shell
 \end{lstlisting}
 
-\
+
+\begin{remark}
+    在 \texttt{UEFI} 环境下，如果 \texttt{backspace} 键无法使用，可以使用 \texttt{Ctrl+H} 键来代替。
+\end{remark}
+
+\begin{remark}
+    将 UEFI 指令写入 \texttt{uefi} 目录下的 \texttt{startup.nsh} 文件中，可以实现开机自动运行。
+\end{remark}
+
+
+\subsubsection{运行 UEFI 环境和自定义 Linux}
+
+首先将编译好的内核镜像和 \texttt{initramfs} 拷贝到 \texttt{uefi} 目录下（也可以软链接）。然后执行：
+
+\begin{lstlisting}[language=bash]
+    cp /path/to/kernel/arch/x86/boot/bzImage uefi/bzImage
+    cp /path/to/initramfs.cpio.gz uefi/initramfs.cpio.gz
+    qemu-system-x86_64 \
+      -drive if=pflash,format=raw,readonly=on,file={Your OVMF_CODE.fd here} \
+      -drive if=pflash,format=raw,file={Your OVMF_VARS.fd here} \
+      -drive file=fat:rw:./uefi,format=raw,if=ide,index=0 \
+      -nographic
+\end{lstlisting}
+
+进入 \texttt{UEFI} 环境之后，执行下列命令：
+
+\begin{lstlisting}[language=bash]
+    fs0:            # go to `uefi` directory
+    # boot the kernel
+    bzImage initrd=initramfs.cpio.gz init=/init console=ttyS0
+    reset                   # in case the kernel does not boot
+\end{lstlisting}
+
+启动 \texttt{Linux} 系统后，可以通过如下命令将 \texttt{uefi} 文件夹挂载到 \texttt{/mnt/efi} 目录：
+
+\begin{lstlisting}[language=bash]
+    mount /dev/sda1 /mnt/efi
+\end{lstlisting}
+
+若使用该方法运行虚拟机，在 \texttt{Linux} 系统使用 \texttt{poweroff -f} 重启虚拟机，会重新进入 \texttt{UEFI Shell} 环境。
+
+\subsubsection{运行 UEFI 环境和 Ubuntu}
+
+首先根据前文\ref{qcow-ubuntu-image} 制作一个 Ubuntu 镜像 \texttt{ubuntu.img}。
+
+然后运行 \texttt{qemu} ：
+
+\begin{lstlisting}[language=bash]
+    qemu-system-x86_64 \
+    -machine q35 \
+    -m 8G \
+    -smp 4 \
+    -snapshot \
+    -drive if=pflash,format=raw,unit=0,file={Your OVMF_CODE.fd here},readonly=on \
+    -drive if=pflash,format=raw,unit=1,file={Your OVMF_VARS.fd here} \
+    -drive file="/path/to/ubuntu.img",format=qcow2,if=virtio \
+    -drive file=fat:ro:"/path/to/folder/uefi",format=raw,if=ide,index=1 \
+    -nographic \
+    -net none \
+    -serial mon:stdio
+\end{lstlisting}
+
+注意到我们将一个文件夹 \texttt{uefi} 也挂载进 \texttt{UEFI} 环境中。它在 \texttt{UEFI Shell} 中的路径为 \texttt{fs0:}。我们可以在把自己编写的 \texttt{UEFI} 程序放在这里。
+
+而 \texttt{Ubuntu} 启动文件夹在 \texttt{UEFI} 中的路径为 \texttt{fs1:}。进入这个目录后，有两种方法可以启动 \texttt{Ubuntu}：
+
+\begin{lstlisting}[language=bash]
+    /EFI/BOOT/BOOTX64.EFI
+    # or
+    /EFI/ubuntu/grubx64.efi
+\end{lstlisting}
+
+进入 \texttt{Ubuntu} 系统后，\texttt{Ubuntu} 的启动文件夹位于 \texttt{/boot/efi} 下。
+
+\begin{remark}
+    上述 qemu 启动命令中，-snapshot 选项表示虚拟机关机后，对虚拟机状态的修改不会保存到磁盘上。该选项非必须。
+\end{remark}
