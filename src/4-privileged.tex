@@ -82,6 +82,18 @@ Linux中提供了vDSO支持这一想法。
     \item 测试多次调用fork()的接口检查稳定性
 \end{itemize}
 
+用户态调用 vDSO 函数的方式：假如你的 vDSO 函数名为 \text{\_vdso\_my\_func}， 通过以下代码可以获得函数指针
+\begin{lstlisting}[language=C]
+void *handle = dlopen("linux-vdso.so.1", RTLD_LAZY);
+void *sym = dlsym(handle, "_vdso_my_func");
+\end{lstlisting}
+
+\subsection*{注意事项}
+\begin{itemize}
+    \item vDSO 是运行在用户态的共享库，没法直接调用内核函数或访问内核数据。你需要一些方式把内核的信息传递到用户态，你可以参考 vvar 的实现（开一段 vma 用于映射信息）
+    \item 你可能需要关注 arch/x86/entry/vdso/vma.c
+\end{itemize}
+
 \section{无需中断的系统调用}
 通过vDSO，我们可以实现无需特权态切换对只读数据的访问。
 那么对于需要请求内核服务的系统调用，是否也可以避开特权态切换呢？

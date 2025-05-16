@@ -132,6 +132,7 @@ In MyACPIPkg.dsc :
 \section{UEFI运行时服务}
 目标：增加一个新的UEFI运行时服务，使得Linux系统可以调用这个新的服务导出硬件运行时信息。
 
-提示：需要修改UEFI固件和Linux内核（sysfs部分），方便直接读取导出的结果。
+提示：需要修改UEFI固件和Linux内核（sysfs部分），方便直接读取导出的结果， 
+你可以不用真的实现 UEFI Runtime Service，只需要向 OS 传递信息即可，可以通过 ACPI 表传递。
 
 测试：展示
