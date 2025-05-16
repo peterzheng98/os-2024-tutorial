@@ -50,7 +50,7 @@ make -j$(nproc)
 \subsection{Linux内核编译}
 \begin{lstlisting}[language=bash]
 # 安装依赖
-sudo apt-get install git fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison 
+sudo apt-get install git fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison
 mkdir ~/kernel && cd ~/kernel
 wget https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/linux-5.x.x.tar.gz
 tar -xf linux-5.x.x.tar.gz
@@ -101,7 +101,16 @@ make -j$(nproc) && make install
 \end{lstlisting}
 如果在编译过程中出现错误（ TCA\_CBQ\_MAX undeclared ），一种解决方式是直接删除出错的 “tc.c” 文件。之后就可以正常编译了（版本 1.32.0 可以用此方法解决）。
 
+\subsection{安装 edk2}
+若不需要给 \texttt{edk2} 添加自定义功能，你可以直接使用包管理器安装预编译的 \texttt{edk2} 。\texttt{Ubuntu 24.04}下可以执行：
+\begin{lstlisting}[language=bash]
+sudo apt-get install ovmf
+\end{lstlisting}
+
+安装完成后，你可以在 \texttt{/usr/share/OVMF} 目录下找到 \texttt{OVMF\_CODE\_4M.fd} 和 \texttt{OVMF\_VARS\_4M.fd} 两个文件，将它们的路径填入后文 \texttt{qemu-system-x86\_64} 的启动参数中即可使用。
+
 \subsection{EDK2编译（简述）}
+
 EDK2的可编译源码在git submodule里，因此相对简单可靠的方式就是直接按照官网所说的那样：
 \begin{lstlisting}[language=bash]
 git clone -b stable/202408 https://github.com/tianocore/edk2.git
