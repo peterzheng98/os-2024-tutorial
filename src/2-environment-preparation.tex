@@ -148,7 +148,16 @@ build
 \begin{lstlisting}[language=bash, language=bash, showstringspaces=false]
 cd busybox-1.x.x/_install/
 mkdir -p proc sys dev tmp
-echo -e '#!/bin/sh\nmount -t proc none /proc\nmount -t sysfs none /sys\nmount -t tmpfs none /tmp\nmount -t devtmpfs none /dev\necho "Hello Linux!"\nexec /bin/sh' > init
+cat > init << 'EOF'
+#!/bin/sh
+mount -t proc none /proc
+mount -t sysfs none /sys
+mount -t tmpfs none /tmp
+mount -t devtmpfs none /dev
+echo "Hello Linux!"
+sh
+poweroff -f
+EOF
 chmod +x init
 \end{lstlisting}
 
