@@ -68,7 +68,7 @@ ACPI Table 是一个树状结构，其第一张表是 RSDP(Root System Descripti
 唯一的障碍是，在 EDK2 中，除了 .c 代码以外，还需要撰写比较麻烦的 .dsc 与 .inf 文件。
 其他组件（如\texttt{helloworld.c}）的这两个文件可以作为撰写的参考，但由于环境复杂，文件内容相对繁多。但实际上，只有少数 field 需要定义和填充。
 
-下面是一个Minimum Working Example: 
+下面是一个Minimum Working Example:
 
 In MyACPI.inf :
 
@@ -105,14 +105,14 @@ In MyACPIPkg.dsc :
   BUILD_TARGETS           = DEBUG|RELEASE
 
 !include MdePkg/MdeLibs.dsc.inc
-  
+
 [LibraryClasses]
   UefiApplicationEntryPoint|MdePkg/Library/UefiApplicationEntryPoint/UefiApplicationEntryPoint.inf
   # ...
   # 此处取决于你 #include 的头文件等依赖库
   # 看 build 时报的缺文件错误信息即可定向修补
   # 比较取巧的方式是直接复制其他 .dsc 中的一坨
-  
+
 [Components]
   MyACPIPkg/MyACPI.inf                        # .inf 相对 edk2/ 根目录的路径
 \end{lstlisting}
@@ -136,3 +136,21 @@ In MyACPIPkg.dsc :
 你可以不用真的实现 UEFI Runtime Service，只需要向 OS 传递信息即可，可以通过 ACPI 表传递。
 
 测试：展示
+
+\subsection{UEFI 启动阶段}
+
+\texttt{UEFI} 系统在启动过程中会经历三个不同的阶段。
+
+\textbf{平台初始化阶段（Platform Initialization）}
+
+这个早期启动阶段主要由 \texttt{UEFI} 固件完成。它在 UEFI 平台初始化规范（UEFI Platform Initialization Specification）中有描述，该规范与主 UEFI 规范是分开的。
+
+\textbf{启动服务阶段（Boot Services）}
+
+此阶段会加载 \texttt{UEFI} 启动驱动（UEFI Boot Service Drivers）、运行时驱动（UEFI Runtime Drivers）和应用程序（UEFI Applications）。可以同时使用 \texttt{UEFI} 的启动服务（Boot Services）和运行时服务（Runtime Services）。此阶段通常以运行加载操作系统的引导加载程序（bootloader）为结束。该阶段在调用 \texttt{ExitBootServices()} 后结束，系统进入运行时模式（Runtime mode）。
+
+\textbf{运行时阶段（Runtime）}
+
+运行操作系统（如 Linux 或 Windows）时，通常处于该阶段。在运行时模式下，\texttt{UEFI} 功能受到很大限制，不能再使用 UEFI 启动服务，但 UEFI 运行时服务仍可用。一旦系统进入运行时模式，只有系统重启后才能重新进入启动服务阶段。
+
+进入运行时模式后，在启动服务阶段加载的 UEFI 运行时驱动的代码仍然会保留在内存中，其中的函数能被 UEFI 事件（UEFI Event）触发调用。
