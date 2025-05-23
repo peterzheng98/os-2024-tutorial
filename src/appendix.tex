@@ -1,6 +1,6 @@
 \chapter{细节说明}
 \section{环境配置}
-\subsubsection{EDK2}\label{appendix:launchuefi}
+\subsection{EDK2}\label{appendix:launchuefi}
 以下是一个编译EDK2的OVMF和相关efi的示例脚本：
 \begin{lstlisting}[language=bash]
 #!/bin/bash
@@ -85,4 +85,66 @@ qemu-system-x86_64 \
 	-no-reboot \
 	-serial mon:stdio
 
+\end{lstlisting}
+
+
+\subsection{添加动态链接库}\label{appendix:dynamic-library}
+以下是一个将程序所依赖的动态链接库添加到 initramfs 里的脚本：
+\begin{lstlisting}[language=bash]
+#!/bin/bash
+
+# Usage: ./add_binary.sh /path/to/binary
+# E.g.: ./add_binary.sh /usr/bin/acpidump
+
+if [ -z "$1" ]; then
+	echo "Usage: $0 /path/to/binary"
+	exit 1
+fi
+
+# This script assumes that the project root is the parent directory of the script.
+# You may change the path definition as needed.
+script_dir=$(dirname "$(realpath "$0")")
+project_root=$(realpath "$script_dir/..")
+
+BINARY="$1"
+BINARY_NAME=$(basename "$BINARY")
+INITRAM_DIR="$project_root/kvm/busybox-1.36.1/_install"
+
+# Make sure we're not missing any directory
+mkdir -p "$INITRAM_DIR/bin"
+mkdir -p "$INITRAM_DIR/usr/bin"
+mkdir -p "$INITRAM_DIR/lib"
+mkdir -p "$INITRAM_DIR/lib64"
+mkdir -p "$INITRAM_DIR/lib/x86_64-linux-gnu"
+
+# Copy the binary
+if [[ "$BINARY" == /usr/bin/* ]]; then
+	cp "$BINARY" "$INITRAM_DIR/usr/bin/"
+	chmod +x "$INITRAM_DIR/usr/bin/$BINARY_NAME"
+else
+	cp "$BINARY" "$INITRAM_DIR/bin/"
+	chmod +x "$INITRAM_DIR/bin/$BINARY_NAME"
+fi
+
+# Get and copy all dependencies
+ldd "$BINARY" | grep "=>" | awk '{print $3}' | while read -r LIB; do
+	if [ -n "$LIB" ]; then
+		# Create target directory
+		TARGET_DIR=$(dirname "$LIB")
+		mkdir -p "$INITRAM_DIR$TARGET_DIR"
+
+		# Copy library
+		cp "$LIB" "$INITRAM_DIR$TARGET_DIR/"
+	fi
+done
+
+# Don't forget the dynamic linker (ld-linux)
+LINKER=$(ldd "$BINARY" | grep "ld-linux" | awk '{print $1}')
+if [ -n "$LINKER" ]; then
+	LINKER_DIR=$(dirname "$LINKER")
+	mkdir -p "$INITRAM_DIR$LINKER_DIR"
+	cp "$LINKER" "$INITRAM_DIR$LINKER_DIR/"
+fi
+
+echo "Added $BINARY_NAME and its dependencies to initramfs"
 \end{lstlisting}
