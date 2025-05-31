@@ -8,6 +8,22 @@
     \item \textbf{EDK2}: 跟随\url{https://github.com/tianocore/edk2}选择合适的版本。其中Ubuntu\_GCC5并不意味着GCC版本必须是5。
 \end{enumerate}
 
+\section{建议的代码管理方式}
+
+建议单独开一个 git 本地仓库用于存放 Linux 内核，init commit 提交你下载的 Linux 内核代码。之后需要修改内核代码时，\textbf{开不同的分支} 便于代码管理。最后提交作业时，可使用 git diff 命令生成 patch 文件
+\begin{lstlisting}[language=bash]
+# 生成当前分支与主分支差异的补丁文件
+git diff main > changes.patch
+
+# 生成两个提交之间的差异
+git diff <commit1> <commit2> > commit_diff.patch
+
+# 生成两个分支之间的差异
+git diff <branch1> <branch2> > branch_diff.patch
+\end{lstlisting}
+
+然后将生成的 patch 文件提交到作业中。
+
 \section{在QEMU中启动Linux镜像}
 \begin{remark}
     \label{qcow-ubuntu-image}
